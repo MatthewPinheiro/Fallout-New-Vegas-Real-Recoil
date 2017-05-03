@@ -1,0 +1,89 @@
+scn RealRecoil
+
+ref Weapon
+ref Ammo
+
+float Weaponskill
+float WeaponRecoil
+float strMultiplier
+float Weaponweight
+float transform
+float frameRateMult
+float deceleration
+float isPistolMult
+
+begin gamemode
+	let Weapon := RRQuest.Weapon
+
+	if Weapon != 0
+		if player.getWeaponAnimType == 4
+			let isPistolMult := 1.4
+		else
+			let isPistolMult := 1.0
+		endif
+
+		let Weaponweight := player.getWeight Weapon
+		let Weaponskill := player.getWeaponskill Weapon
+		let Ammo := RRQuest.Ammo
+		let strMultiplier := 2 - (.1 * player.getAV Strength)
+		let frameRateMult := GetSecondsPassed / 0.016
+			
+			;Initial Firing
+			if (RRQuest.AmmoCount > Weapon.GetPlayerCurrentAmmoRounds) && (Ammo == player.getPlayerCurrentAmmo) && (Weapon == player.getEquippedObject 5) && testExpr #RRQuest.AmmoRecoils[refToString Ammo]
+				let WeaponRecoil := #RRQuest.AmmoRecoils[refToString Ammo]  * getAmmoUse Weapon
+				let RRQuest.verticalRecoil := WeaponRecoil/((log Weaponweight 2) + 2) * strMultiplier * (rand 0.786, 1.108) * isPistolMult * 5/6; (for realism); Original 0.825, 1.305; 2nd 0.655, 1.045; 3rd 0.655, 0.923; Experimental 0.287, 0.825
+				let RRQuest.vertRecInitial := RRQuest.verticalRecoil
+				let RRQuest.horizontalRecoil := (rand -3, 3)*(GetMaxOf WeaponRecoil 1.5)/(Weaponskill)*strMultiplier
+				let RRQuest.hasFired := 1
+				;print $refToString Ammo + " - " + $WeaponRecoil
+			endif
+			set RRQuest.AmmoCount to Weapon.GetPlayerCurrentAmmoRounds
+
+			;Upwards Recoil
+			if RRQuest.hasFired == 1
+				let deceleration := RRQuest.verticalRecoil * 1/3
+				let transform := player.getangle x - (RRQuest.verticalRecoil*frameRateMult-deceleration/2 * frameRateMult)
+				if transform >=-89
+					player.setangle x transform
+					let RRQuest.verticalRecoil -= deceleration * frameRateMult; Original 2/3
+				endif
+				let deceleration := RRQuest.horizontalRecoil * 1/3
+				let transform := player.getangle z + (RRQuest.horizontalRecoil*frameRateMult-deceleration/2 * frameRateMult)
+				player.setangle z transform
+				let RRQuest.horizontalRecoil -= deceleration * frameRateMult ; Original 2/3
+				if RRQuest.verticalRecoil <= 0.10 ;Original 0.03, 2nd 0.06; "Real" 0.10
+					let RRQuest.hasFired := 2
+					let RRQuest.verticalRecoil := GetMaxOf RRQuest.verticalRecoil 0.03 ;So it doesn't fall below 0
+				endif
+
+			;Recoil Compensation 1
+			elseif RRQuest.hasFired == 2
+				let deceleration := RRQuest.verticalRecoil * 1/3
+				let transform := player.getangle x + (RRQuest.verticalRecoil*frameRateMult+deceleration/2* frameRateMult)
+				if player.getangle x <= 89
+					player.setangle x transform
+					let RRQuest.verticalRecoil += deceleration * frameRateMult; Original 5/3, same for line below
+				endif
+				if RRQuest.verticalRecoil >= RRQuest.vertRecInitial/4
+					let RRQuest.hasFired := 3
+				endif
+			
+			;Recoil Compensation 2
+			elseif RRQuest.hasFired == 3
+				if player.getangle x <= 89 && RRQuest.verticalRecoil > 0.01
+					let deceleration := RRQuest.verticalRecoil * 1/3
+					let transform := player.getangle x + (RRQuest.verticalRecoil*frameRateMult-deceleration/2 * frameRateMult)
+					player.setangle x transform
+					let RRQuest.verticalRecoil -= deceleration * frameRateMult; Original 2/3
+				else
+					let RRQuest.hasFired := 0
+					let RRQuest.verticalRecoil := 0
+				endif
+			endif
+		endif
+
+		let RRQuest.Ammo := player.getPlayerCurrentAmmo
+	
+	let RRQuest.Weapon := player.getEquippedObject 5
+
+end

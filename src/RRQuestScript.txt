@@ -1,0 +1,50 @@
+ScriptName RRQuestScript
+
+	Short Initialized
+	Short ObjScptInitialized
+	
+	Ref Weapon
+	Ref Ammo
+	Array_Var ammoRecoils
+
+	Array_Var tempArrOuter
+	Array_Var tempArrInner
+
+	Short ammoCount
+	Short hasFired
+
+	Float verticalRecoil
+	Float vertRecInitial
+	Float horizontalRecoil
+
+	String_var iniSection
+	
+	Begin GameMode
+		If Initialized == 0 || GetGameLoaded || GetGameRestarted ; last two are from NVSE
+			Set Initialized to 1
+			Print "RRQuestScript Loaded and Working"
+			if Player.GetItemCount RealRecoilToken < 1
+				Player.AddItem RealRecoilToken 1 1
+				Player.EquipItem RealRecoilToken 1 1
+			endif
+			Print "Token Count = " + $Player.GetItemCount RealRecoilToken
+			Set Weapon to player.getEquippedObject 5
+			If Weapon != 0
+				Set Ammo to player.getPlayerCurrentAmmo
+				Set ammoCount to Weapon.GetPlayerCurrentAmmoRounds	
+			Endif
+			
+			Let ammoRecoils := Ar_Construct "stringmap"
+
+			ForEach tempArrOuter <- GetINISectionNames
+				let iniSection := $tempArrOuter["value"]
+				if isModLoaded $iniSection
+					print iniSection + " is loaded for recoil"
+					ForEach tempArrInner <- GetINISection $iniSection
+						Let ammoRecoils[$iniSection + ":" + tempArrInner["key"]] := #tempArrInner["value"]
+					Loop
+				endif
+			Loop
+
+		EndIf
+	End
