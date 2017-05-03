@@ -2,6 +2,8 @@ Real Recoil v1.2.1
 
 The first-ever mod to bring proper recoil to the Mojave.
 
+http://www.nexusmods.com/newvegas/mods/62153/?
+
 -----------
 Description
 -----------
